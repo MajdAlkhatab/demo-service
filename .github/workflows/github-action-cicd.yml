@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 
-
+  
 jobs:
   plan:
     if: github.event_name == 'push'
