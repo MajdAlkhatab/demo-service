@@ -1,19 +1,18 @@
 name: Full Infra + Deploy with Terraform and Cloud Run
 
-
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
-
-
 permissions:
   id-token: write
   contents: read
 
-  
+
+
+
 jobs:
   plan:
     if: github.event_name == 'push'
@@ -42,22 +41,25 @@ jobs:
 
 
   deploy:
+    needs: plan
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
+
+
     steps:
-      # 1️⃣ Checkout
+      #  Checkout
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Authenticate to Google Cloud via WIF
+      # Authenticate to Google Cloud via WIF
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
           service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
 
-      # 3️⃣ Setup gcloud
+      # Setup gcloud
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
@@ -81,7 +83,7 @@ jobs:
 
 
 
-      # 4️⃣ Recreate Terraform backend bucket (fresh state each run)
+      # Recreate Terraform backend bucket (fresh state each run)
       - name: Recreate Terraform state bucket
         run: |
           BUCKET="curamet-onboarding-v2-core-tf-state"
@@ -105,11 +107,11 @@ jobs:
               --description="Docker repository for vv-demo-service-v2"
         
 
-      # 7️ Configure Docker for Artifact Registry
+      #Configure Docker for Artifact Registry
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker europe-west1-docker.pkg.dev -q
 
-      # 8️⃣ Build & Push Docker Image
+      # Build & Push Docker Image
       - name: Build and Push Docker Image
         run: |
           IMAGE="europe-west1-docker.pkg.dev/curamet-onboarding/vv-curamet-repo/vv-demo-service-v2"
@@ -124,13 +126,13 @@ jobs:
 
 
 
-      # 5️⃣ Setup Terraform
+      # Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
-      # 6️⃣ Terraform Init & Apply
+      # Terraform Init & Apply
       - name: Terraform Init & Apply
         working-directory: terraform
         run: |
@@ -139,10 +141,7 @@ jobs:
           terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
 
 
-
-
-
-      # 9️⃣ Deploy to Cloud Run
+      # Deploy to Cloud Run
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy demo-service-v2 \
@@ -151,9 +150,50 @@ jobs:
             --allow-unauthenticated \
             --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
 
-      # 🔟 Destroy Infra after Deploy (for temporary test runs)
+      # Destroy Infra after Deploy (for temporary test runs)
       - name: Terraform Destroy
         working-directory: terraform
         run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
 
-      
+  destroy:
+    needs: deploy
+    if: github.event_name == 'pull_request' && success()
+    runs-on: ubuntu-latest
+
+    steps:
+        # 1️⃣ Checkout your current repo (so you have the workflow file)
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+
+        # 2️⃣ Authenticate to Google Cloud via WIF (same as before)
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+            workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
+            service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
+
+        # 3️⃣ Setup gcloud
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+            project_id: curamet-onboarding
+
+        # 4️⃣ Fetch GitHub PAT from Google Secret Manager
+      - name: Access GitHub PAT from Secret Manager
+        id: fetch-pat
+        run: |
+            PAT=$(gcloud secrets versions access latest --secret=github-pat)
+            echo "PAT=$PAT" >> $GITHUB_ENV
+
+        # 5️⃣ Push to curamet/demo-service (branch majd-ci-cd)
+      - name: Push to Curamet repo
+        env:
+            PAT: ${{ env.PAT }}
+        run: |
+            git config --global user.email "github-actions@curamet.com"
+            git config --global user.name "GitHub Actions Bot"
+            git clone https://$PAT@github.com/curamet/demo-service.git
+            cd demo-service
+            git checkout majd-ci-cd
+            git commit --allow-empty -m "Trigger destroy workflow"
+            git push origin majd-ci-cd
