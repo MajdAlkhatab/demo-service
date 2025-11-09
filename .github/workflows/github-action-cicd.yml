@@ -56,6 +56,7 @@ jobs:
           workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
           service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
 
+          
       # Setup gcloud
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
