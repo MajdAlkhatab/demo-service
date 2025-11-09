@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
+      # 1️⃣ Checkout
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -24,42 +24,57 @@ jobs:
           workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
           service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
 
-      # 3️⃣ Setup gcloud CLI
+      # 3️⃣ Setup gcloud
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: curamet-onboarding
 
-      # 4️⃣ Setup Terraform
+      # 4️⃣ Recreate Terraform backend bucket (fresh state each run)
+      - name: Recreate Terraform state bucket
+        run: |
+          BUCKET="curamet-onboarding-v2-core-tf-state"
+          LOCATION="EU"
+
+          if gsutil ls -b gs://$BUCKET >/dev/null 2>&1; then
+            echo "🧹 Removing existing bucket and its contents: $BUCKET ..."
+            gsutil -m rm -r gs://$BUCKET || true
+          fi
+
+          echo "🪣 Creating fresh bucket: $BUCKET ..."
+          gsutil mb -p curamet-onboarding -l $LOCATION gs://$BUCKET
+
+      # 5️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
-      # 5️⃣ Initialize and apply Terraform
+      # 6️⃣ Terraform Init & Apply
       - name: Terraform Init & Apply
         working-directory: terraform
         run: |
           terraform init -backend-config="environments/dev/backend.conf"
+          terraform plan -var-file="environments/dev/terraform.tfvars"
           terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
 
-      # 6️⃣ Configure Docker for Artifact Registry
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker europe-west1-docker.pkg.dev -q
+      # 7️⃣ Configure Docker for Artifact Registry
+      #- name: Configure Docker for Artifact Registry
+      #  run: gcloud auth configure-docker europe-west1-docker.pkg.dev -q
 
-      # 7️⃣ Build & Push Docker Image
-      - name: Build and Push Docker Image
-        run: |
-          IMAGE="europe-west1-docker.pkg.dev/curamet-onboarding/am-curamet-repo/demo-service-v2:${{ github.sha }}"
-          docker buildx create --use
-          docker buildx build \
-            --platform linux/amd64 \
-            -t "$IMAGE" \
-            --push \
-            .
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+      # 8️⃣ Build & Push Docker Image
+      #- name: Build and Push Docker Image
+      #  run: |
+      #    IMAGE="europe-west1-docker.pkg.dev/curamet-onboarding/am-curamet-repo/demo-service-v2:${{ github.sha }}"
+      #    docker buildx create --use
+      #    docker buildx build \
+      #      --platform linux/amd64 \
+      #      -t "$IMAGE" \
+      #      --push \
+      #      .
+      #    echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
-      # 8️⃣ Deploy to Cloud Run
+      # 9️⃣ Deploy to Cloud Run
       #- name: Deploy to Cloud Run
       #  run: |
       #    gcloud run deploy demo-service-v2 \
@@ -67,8 +82,8 @@ jobs:
       #      --region=europe-west1 \
       #      --allow-unauthenticated \
       #      --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
-#
-      # 9️⃣ (Optional) Destroy infra after deploy (for cleanup/testing)
-      #- name: Terraform Destroy
-      #  working-directory: terraform
-      #  run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
+
+      # 🔟 (Optional) Destroy Infra after Deploy (for temporary test runs)
+      # - name: Terraform Destroy
+      #   working-directory: terraform
+      #   run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
