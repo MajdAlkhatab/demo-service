@@ -30,6 +30,16 @@ jobs:
         with:
           project_id: curamet-onboarding
 
+      - name: Cleanup old resources
+        run: |
+            gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
+            gcloud artifacts repositories delete vv-curamet-repo --location=europe-west1 --quiet || true
+            gcloud iam service-accounts delete vv-sa-demo-service-runner@curamet-onboarding.iam.gserviceaccount.com --quiet || true
+            gcloud iam service-accounts delete vv-sa-demo-service-invoker@curamet-onboarding.iam.gserviceaccount.com --quiet || true
+            gcloud secrets delete vv-demo-secret --quiet || true
+            gcloud storage rm --recursive gs://vv-curamet-bucket || true
+            gcloud pubsub topics delete vv-dead-letter-topic --quiet || true
+
       # 4️⃣ Recreate Terraform backend bucket (fresh state each run)
       - name: Recreate Terraform state bucket
         run: |
@@ -44,15 +54,7 @@ jobs:
           echo "🪣 Creating fresh bucket: $BUCKET ..."
           gsutil mb -p curamet-onboarding -l $LOCATION gs://$BUCKET
 
-      - name: Cleanup old resources
-        run: |
-          gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
-          gcloud artifacts repositories delete vv-curamet-repo --location=europe-west1 --quiet || true
-          gcloud iam service-accounts delete vv-sa-demo-service-runner@curamet-onboarding.iam.gserviceaccount.com --quiet || true
-          gcloud iam service-accounts delete vv-sa-demo-service-invoker@curamet-onboarding.iam.gserviceaccount.com --quiet || true
-          gcloud secrets delete vv-demo-secret --quiet || true
-          gcloud storage rm --recursive gs://vv-curamet-bucket || true
-          gcloud pubsub topics delete vv-dead-letter-topic --quiet || true
+
 
       # 7️ Configure Docker for Artifact Registry
       - name: Configure Docker for Artifact Registry
@@ -103,3 +105,5 @@ jobs:
       # - name: Terraform Destroy
       #   working-directory: terraform
       #   run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
+
+      
