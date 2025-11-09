@@ -56,7 +56,7 @@ jobs:
         run: |
           terraform init -backend-config="environments/dev/backend.conf"
           terraform plan -var-file="environments/dev/terraform.tfvars"
-      #    terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
+          terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
 
       # 7️⃣ Configure Docker for Artifact Registry
       #- name: Configure Docker for Artifact Registry
