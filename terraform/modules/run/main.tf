@@ -38,5 +38,5 @@ resource "google_cloud_run_v2_service" "run_service" {
 
 
 locals {
-  image_url = "europe-west1-docker.pkg.dev/${var.project}/${var.repository_id}/${var.prefix}-${var.run_service_name}:${var.run_version}"
+  image_url = "europe-west1-docker.pkg.dev/${var.project}/${var.repository_id}/${var.prefix}-${var.run_service_name}"
 }
