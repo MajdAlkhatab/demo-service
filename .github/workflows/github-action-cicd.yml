@@ -39,6 +39,11 @@ jobs:
             gcloud secrets delete vv-demo-secret --quiet || true
             gcloud storage rm --recursive gs://vv-curamet-bucket || true
             gcloud pubsub topics delete vv-dead-letter-topic --quiet || true
+            gcloud pubsub topics delete vv-demo-topic --quiet || true
+            gcloud pubsub topics delete vv-object-notification-topic --quiet || true
+            gcloud pubsub subscriptions delete vv-dead-lettering-subscription --quiet || true
+            gcloud run services delete vv-demo-service-v2 --region=europe-west1 --quiet || true
+
 
       # 4️⃣ Recreate Terraform backend bucket (fresh state each run)
       - name: Recreate Terraform state bucket
