@@ -60,6 +60,14 @@ jobs:
           gsutil mb -p curamet-onboarding -l $LOCATION gs://$BUCKET
 
 
+      - name: check Artifact Registry exists
+        run: |
+            gcloud artifacts repositories describe vv-curamet-repo --location=europe-west1 >/dev/null 2>&1 || \
+            gcloud artifacts repositories create vv-curamet-repo \
+              --repository-format=docker \
+              --location=europe-west1 \
+              --description="Docker repository for vv-demo-service-v2"
+        
 
       # 7️ Configure Docker for Artifact Registry
       - name: Configure Docker for Artifact Registry
