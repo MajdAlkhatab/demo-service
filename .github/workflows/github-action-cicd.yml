@@ -12,7 +12,6 @@ permissions:
 
 
 
-
 jobs:
   plan:
     if: github.event_name == 'push'
