@@ -1,24 +1,50 @@
+name: CI/CD - Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ "main" ]
+
 permissions:
-    id-token: write
-    contents: read
-  
-  jobs:
-    deploy:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-  
-        - name: Authenticate to Google Cloud
-          uses: google-github-actions/auth@v2
-          with:
-            workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
-            service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
-  
-        - name: Setup gcloud
-          uses: google-github-actions/setup-gcloud@v2
-          with:
-            project_id: curamet-onboarding
-  
-        - run: gcloud storage buckets list
-  
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
+          service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: curamet-onboarding
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev -q
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE="europe-west1-docker.pkg.dev/curamet-onboarding/am-curamet-repo/demo-service-v2:${{ github.sha }}"
+          docker buildx create --use
+          docker buildx build \
+            --platform linux/amd64 \
+            -t "$IMAGE" \
+            --push \
+            .
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy demo-service-v2 \
+            --image=$IMAGE \
+            --region=europe-west1 \
+            --allow-unauthenticated \
+            --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
