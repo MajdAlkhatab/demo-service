@@ -44,6 +44,14 @@ jobs:
           echo "🪣 Creating fresh bucket: $BUCKET ..."
           gsutil mb -p curamet-onboarding -l $LOCATION gs://$BUCKET
 
+      - name: Cleanup old resources
+        run: |
+          gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
+          gcloud artifacts repositories delete vv-curamet-repo --location=europe-west1 --quiet || true
+          gcloud iam service-accounts delete vv-sa-demo-service-runner@curamet-onboarding.iam.gserviceaccount.com --quiet || true
+          gcloud iam service-accounts delete vv-sa-demo-service-invoker@curamet-onboarding.iam.gserviceaccount.com --quiet || true
+
+
       # 5️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
