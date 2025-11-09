@@ -52,6 +52,8 @@ jobs:
           gcloud iam service-accounts delete vv-sa-demo-service-invoker@curamet-onboarding.iam.gserviceaccount.com --quiet || true
           gcloud secrets delete vv-demo-secret --quiet || true
           gcloud storage rm --recursive gs://vv-curamet-bucket || true
+          gcloud pubsub topics delete vv-dead-letter-topic --quiet || true
+
 
 
 
@@ -68,7 +70,7 @@ jobs:
         run: |
           terraform init -backend-config="environments/dev/backend.conf"
           terraform plan -var-file="environments/dev/terraform.tfvars"
-          terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
+       #   terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
 
       # 7️⃣ Configure Docker for Artifact Registry
       #- name: Configure Docker for Artifact Registry
