@@ -43,6 +43,9 @@ jobs:
             gcloud pubsub topics delete vv-object-notification-topic --quiet || true
             gcloud pubsub subscriptions delete vv-dead-lettering-subscription --quiet || true
             gcloud run services delete vv-demo-service-v2 --region=europe-west1 --quiet || true
+            gcloud pubsub subscriptions delete vv-subscription-trigger-demo-service --quiet || true
+            gcloud pubsub subscriptions delete vv-subscription-object-notification --quiet || true
+
 
 
       # 4️⃣ Recreate Terraform backend bucket (fresh state each run)
@@ -116,8 +119,8 @@ jobs:
             --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
 
       # 🔟 (Optional) Destroy Infra after Deploy (for temporary test runs)
-      # - name: Terraform Destroy
-      #   working-directory: terraform
-      #   run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
+      - name: Terraform Destroy
+        working-directory: terraform
+        run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
 
       
