@@ -119,7 +119,7 @@ jobs:
             --allow-unauthenticated \
             --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
 
-      # 🔟 (Optional) Destroy Infra after Deploy (for temporary test runs)
+      # 🔟 Destroy Infra after Deploy (for temporary test runs)
       - name: Terraform Destroy
         working-directory: terraform
         run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
