@@ -1,4 +1,4 @@
-name: CI/CD - Deploy to Cloud Run
+name: Full Infra + Deploy with Terraform and Cloud Run
 
 on:
   push:
@@ -13,23 +13,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Authenticate to Google Cloud via WIF
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
           service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
 
+      # 3️⃣ Setup gcloud CLI
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: curamet-onboarding
 
+      # 4️⃣ Setup Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      # 5️⃣ Initialize and apply Terraform
+      - name: Terraform Init & Apply
+        working-directory: terraform
+        run: |
+          terraform init -backend-config="environments/dev/backend.conf"
+          terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
+
+      # 6️⃣ Configure Docker for Artifact Registry
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker europe-west1-docker.pkg.dev -q
 
+      # 7️⃣ Build & Push Docker Image
       - name: Build and Push Docker Image
         run: |
           IMAGE="europe-west1-docker.pkg.dev/curamet-onboarding/am-curamet-repo/demo-service-v2:${{ github.sha }}"
@@ -41,10 +59,16 @@ jobs:
             .
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy demo-service-v2 \
-            --image=$IMAGE \
-            --region=europe-west1 \
-            --allow-unauthenticated \
-            --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
+      # 8️⃣ Deploy to Cloud Run
+      #- name: Deploy to Cloud Run
+      #  run: |
+      #    gcloud run deploy demo-service-v2 \
+      #      --image=$IMAGE \
+      #      --region=europe-west1 \
+      #      --allow-unauthenticated \
+      #      --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
+#
+      # 9️⃣ (Optional) Destroy infra after deploy (for cleanup/testing)
+      #- name: Terraform Destroy
+      #  working-directory: terraform
+      #  run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
