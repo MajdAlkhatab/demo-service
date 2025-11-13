@@ -46,7 +46,7 @@ jobs:
 
 
   deploy:
-    needs: plan
+#    needs: plan
     if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy'
     runs-on: ubuntu-latest
 
@@ -163,7 +163,7 @@ jobs:
 
         
   destroy:
-    needs: deploy
+#    needs: deploy
     if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy' && success()
     runs-on: ubuntu-latest
 
