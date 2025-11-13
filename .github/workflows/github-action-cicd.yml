@@ -196,14 +196,16 @@ jobs:
             echo "PAT=$PAT" >> $GITHUB_ENV
 
         # Push to curamet/demo-service (branch majd-ci-cd)
-      - name: Push to Curamet repo
-        env:
-            PAT: ${{ env.PAT }}
-        run: |
-            git config --global user.email "github-actions@curamet.com"
-            git config --global user.name "GitHub Actions Bot"
-            git clone https://$PAT@github.com/curamet/demo-service.git
-            cd demo-service
-            git checkout majd-ci-cd
-            git commit --allow-empty -m "Trigger destroy workflow"
-            git push origin majd-ci-cd
+#      - name: Push to Curamet repo
+#        env:
+#            PAT: ${{ env.PAT }}
+#        run: |
+#            git config --global user.email "github-actions@curamet.com"
+#            git config --global user.name "GitHub Actions Bot"
+#            git clone https://$PAT@github.com/curamet/demo-service.git
+#            cd demo-service
+#            git checkout majd-ci-cd
+#            git commit --allow-empty -m "Trigger destroy workflow"
+#            git push origin majd-ci-cd
+
+            
