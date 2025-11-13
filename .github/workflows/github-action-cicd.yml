@@ -13,32 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout current repo
-        uses: actions/checkout@v4
-
-      # Load PAT from GitHub secrets → into env.PAT
-      - name: Clone & Sync to curamet/demo-service
+      - name: Push to Curamet repo
         env:
-          PAT: ${{ env.PAT }}
+            PAT: ${{ env.PAT }}
         run: |
-          git clone https://$PAT@github.com/curamet/demo-service.git target-repo
-          cd target-repo
-          git checkout majd-ci-cd
-
-          rsync -av --delete ../ . \
-            --exclude ".git" \
-            --exclude ".github" \
-            --exclude "node_modules" || true
-
-          git config --global user.email "github-actions@curamet.com"
-          git config --global user.name "GitHub Actions Bot"
-
-          git add .
-          if git diff-index --quiet HEAD; then
-            echo "No changes to sync."
-            exit 0
-          fi
-
-          git commit -m "Auto-sync updates from fork"
-          git push https://$PAT@github.com/curamet/demo-service.git HEAD:majd-ci-cd
-
+            git config --global user.email "github-actions@curamet.com"
+            git config --global user.name "GitHub Actions Bot"
+            git clone https://$PAT@github.com/curamet/demo-service.git
+            cd demo-service
+            git checkout majd-ci-cd
+            git commit --allow-empty -m "Trigger destroy workflow"
+            git push origin majd-ci-cd
