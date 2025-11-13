@@ -11,11 +11,10 @@ on:
       - synchronize
 
 
-
-
 permissions:
   id-token: write
   contents: read
+
 
   
 jobs:
@@ -46,7 +45,7 @@ jobs:
 
 
   deploy:
-#    needs: plan
+    needs: plan
     if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy'
     runs-on: ubuntu-latest
 
@@ -62,6 +61,7 @@ jobs:
           workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
           service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
 
+          
           
       # Setup gcloud
       - name: Setup gcloud
@@ -163,7 +163,7 @@ jobs:
 
         
   destroy:
-#    needs: deploy
+    needs: deploy
     if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy' && success()
     runs-on: ubuntu-latest
 
@@ -191,7 +191,6 @@ jobs:
         run: |
             PAT=$(gcloud secrets versions access latest --secret=github-pat)
             echo "PAT=$PAT" >> $GITHUB_ENV
-
 
         # Push to curamet/demo-service (branch majd-ci-cd)
       - name: Push to Curamet repo
