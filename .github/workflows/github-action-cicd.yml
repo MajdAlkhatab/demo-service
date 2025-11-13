@@ -10,7 +10,6 @@ on:
       - opened
       - synchronize
 
-
 permissions:
   id-token: write
   contents: read
@@ -45,7 +44,7 @@ jobs:
             terraform plan -var-file="environments/dev/terraform.tfvars"
 
 
-  deploy:
+  deploy-destroy:
     needs: plan
     if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy'
     runs-on: ubuntu-latest
@@ -156,59 +155,6 @@ jobs:
             --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
 
       # Destroy Infra after Deploy (for temporary test runs)
-      - name: Terraform Destroy
-        working-directory: terraform
-        run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
-
-
-
-        
-  destroy:
-    needs: deploy
-    if: >
-      github.event_name == 'pull_request' &&
-      github.head_ref == 'test-deploy' &&
-      success()
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout current repo
-        uses: actions/checkout@v4
-
-      # Authenticate to Google Cloud via WIF
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
-          service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
-
-      # Setup gcloud
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: curamet-onboarding
-
-
-      # cleanup GCP resources like deploy job cleanup
-      - name: Cleanup GCP resources (optional)
-        run: |
-          gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
-          gcloud artifacts repositories delete vv-curamet-repo --location=europe-west1 --quiet || true
-          gcloud iam service-accounts delete vv-sa-demo-service-runner@curamet-onboarding.iam.gserviceaccount.com --quiet || true
-          gcloud iam service-accounts delete vv-sa-demo-service-invoker@curamet-onboarding.iam.gserviceaccount.com --quiet || true
-          gcloud secrets delete vv-demo-secret --quiet || true
-          gcloud storage rm --recursive gs://vv-curamet-bucket || true
-          gcloud pubsub topics delete vv-dead-letter-topic --quiet || true
-          gcloud pubsub topics delete vv-demo-topic --quiet || true
-          gcloud pubsub topics delete vv-object-notification-topic --quiet || true
-          gcloud pubsub subscriptions delete vv-dead-lettering-subscription --quiet || true
-          gcloud pubsub subscriptions delete vv-subscription-trigger-demo-service --quiet || true
-          gcloud pubsub subscriptions delete vv-subscription-object-notification --quiet || true
-          gcloud run services delete vv-demo-service-v2 --region=europe-west1 --quiet || true
-
-
-      # Terraform Destroy (final cleanup)
       - name: Terraform Destroy
         working-directory: terraform
         run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
