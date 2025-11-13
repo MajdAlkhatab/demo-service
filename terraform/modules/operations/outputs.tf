@@ -3,3 +3,5 @@ output "repository_id" {
   value       = "vv-curamet-repo"
   description = "Repository ID where the docker images will be stored"
 }
+
+

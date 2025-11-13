@@ -4,7 +4,14 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: 
+      - main
+    types:
+      - opened
+      - synchronize
+
+
+
 
 permissions:
   id-token: write
@@ -12,10 +19,10 @@ permissions:
 
   
 
-
+  
 jobs:
   plan:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -42,7 +49,7 @@ jobs:
 
   deploy:
     needs: plan
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy'
     runs-on: ubuntu-latest
 
     steps:
@@ -157,35 +164,35 @@ jobs:
         
   destroy:
     needs: deploy
-    if: github.event_name == 'pull_request' && success()
+    if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy' && success()
     runs-on: ubuntu-latest
 
     steps:
-        # 1️⃣ Checkout your current repo (so you have the workflow file)
+        # Checkout your current repo (so you have the workflow file)
       - name: Checkout current repo
         uses: actions/checkout@v4
 
-        # 2️⃣ Authenticate to Google Cloud via WIF (same as before)
+        # Authenticate to Google Cloud via WIF (same as before)
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
             workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
             service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
 
-        # 3️⃣ Setup gcloud
+        # Setup gcloud
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
             project_id: curamet-onboarding
 
-        # 4️⃣ Fetch GitHub PAT from Google Secret Manager
+        # Fetch GitHub PAT from Google Secret Manager
       - name: Access GitHub PAT from Secret Manager
         id: fetch-pat
         run: |
             PAT=$(gcloud secrets versions access latest --secret=github-pat)
             echo "PAT=$PAT" >> $GITHUB_ENV
 
-        # 5️⃣ Push to curamet/demo-service (branch majd-ci-cd)
+        # Push to curamet/demo-service (branch majd-ci-cd)
       - name: Push to Curamet repo
         env:
             PAT: ${{ env.PAT }}
