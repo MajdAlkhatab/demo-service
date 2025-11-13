@@ -21,9 +21,7 @@ jobs:
   plan:
     if: >
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/majd-ci-cd') ||
       (github.event_name == 'pull_request' && github.head_ref == 'test-deploy')
-
 
     runs-on: ubuntu-latest
     steps:
@@ -50,11 +48,8 @@ jobs:
 
 
   deploy:
-
     needs: plan
-    if: >
-      (github.event_name == 'pull_request' && github.head_ref == 'test-deploy') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/majd-ci-cd')
+    if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy'
     runs-on: ubuntu-latest
 
     steps:
@@ -172,11 +167,7 @@ jobs:
         
   destroy:
     needs: deploy
-    if: >
-      success() && (
-        (github.event_name == 'pull_request' && github.head_ref == 'test-deploy') ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/majd-ci-cd')
-      )
+    if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy' && success()
     runs-on: ubuntu-latest
 
     steps:
@@ -217,31 +208,4 @@ jobs:
 #            git commit --allow-empty -m "Trigger destroy workflow"
 #            git push origin majd-ci-cd
 
-
-      - name: Sync code to curamet/demo-service
-        env:
-          PAT: ${{ env.PAT }}
-        run: |
-          # Clone target repo
-          git clone https://$PAT@github.com/curamet/demo-service.git target-repo
-          cd target-repo
-          git checkout majd-ci-cd
-
-          # Copy all files from current workflow repo into target repo
-          rsync -av --delete ../ . \
-            --exclude ".git" \
-            --exclude ".github" \
-            --exclude "node_modules" || true
-
-          # Commit changes if there are any
-          git add .
-          git config --global user.email "github-actions@curamet.com"
-          git config --global user.name "GitHub Actions Bot"
-          if git diff-index --quiet HEAD; then
-            echo "No changes to sync."
-            exit 0
-          fi
-
-          git commit -m "Auto-sync updates from fork"
-          git push origin majd-ci-cd
-
+            
