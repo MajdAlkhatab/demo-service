@@ -3,6 +3,15 @@ name: Full Infra + Deploy with Terraform and Cloud Run
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: 
+      - main
+    types:
+      - opened
+      - synchronize
+
+
+
 
 permissions:
   id-token: write
@@ -12,6 +21,7 @@ permissions:
   
 jobs:
   plan:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -38,6 +48,7 @@ jobs:
 
   deploy:
     needs: plan
+    if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy'
     runs-on: ubuntu-latest
 
     steps:
@@ -151,6 +162,7 @@ jobs:
 
   destroy:
     needs: deploy
+    if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy' && success()
     runs-on: ubuntu-latest
 
     steps:
