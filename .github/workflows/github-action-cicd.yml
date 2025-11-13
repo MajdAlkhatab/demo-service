@@ -21,7 +21,9 @@ jobs:
   plan:
     if: >
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/majd-ci-cd') ||
       (github.event_name == 'pull_request' && github.head_ref == 'test-deploy')
+
 
     runs-on: ubuntu-latest
     steps:
@@ -48,8 +50,11 @@ jobs:
 
 
   deploy:
+
     needs: plan
-    if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy'
+    if: >
+      (github.event_name == 'pull_request' && github.head_ref == 'test-deploy') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/majd-ci-cd')
     runs-on: ubuntu-latest
 
     steps:
@@ -167,7 +172,11 @@ jobs:
         
   destroy:
     needs: deploy
-    if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy' && success()
+    if: >
+      success() && (
+        (github.event_name == 'pull_request' && github.head_ref == 'test-deploy') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/majd-ci-cd')
+      )
     runs-on: ubuntu-latest
 
     steps:
