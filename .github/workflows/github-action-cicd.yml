@@ -65,6 +65,7 @@ jobs:
           service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
 
           
+          
       # Setup gcloud
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
