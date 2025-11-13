@@ -194,6 +194,7 @@ jobs:
             PAT=$(gcloud secrets versions access latest --secret=github-pat)
             echo "PAT=$PAT" >> $GITHUB_ENV
 
+
         # Push to curamet/demo-service (branch majd-ci-cd)
       - name: Push to Curamet repo
         env:
