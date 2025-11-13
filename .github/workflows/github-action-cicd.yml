@@ -20,6 +20,7 @@ jobs:
       - name: Load PAT
         run: echo "PAT=${{ secrets.PAT }}" >> $GITHUB_ENV
 
+
       - name: Clone & Sync to curamet/demo-service
         env:
           PAT: ${{ env.PAT }}
@@ -46,4 +47,4 @@ jobs:
           fi
 
           git commit -m "Auto-sync updates from fork"
-          git push origin majd-ci-cd
+          git push https://$PAT@github.com/curamet/demo-service.git HEAD:majd-ci-cd
