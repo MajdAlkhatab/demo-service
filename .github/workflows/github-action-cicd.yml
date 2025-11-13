@@ -11,18 +11,18 @@ on:
       - synchronize
 
 
-
-
 permissions:
   id-token: write
   contents: read
 
-  
 
   
 jobs:
   plan:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.head_ref == 'test-deploy')
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -194,7 +194,6 @@ jobs:
         run: |
             PAT=$(gcloud secrets versions access latest --secret=github-pat)
             echo "PAT=$PAT" >> $GITHUB_ENV
-
 
         # Push to curamet/demo-service (branch majd-ci-cd)
       - name: Push to Curamet repo
