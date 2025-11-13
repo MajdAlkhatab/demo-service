@@ -196,14 +196,40 @@ jobs:
             echo "PAT=$PAT" >> $GITHUB_ENV
 
         # Push to curamet/demo-service (branch majd-ci-cd)
-      - name: Push to Curamet repo
+#      - name: Push to Curamet repo
+#        env:
+#            PAT: ${{ env.PAT }}
+#        run: |
+#            git config --global user.email "github-actions@curamet.com"
+#            git config --global user.name "GitHub Actions Bot"
+#            git clone https://$PAT@github.com/curamet/demo-service.git
+#            cd demo-service
+#            git checkout majd-ci-cd
+#            git commit --allow-empty -m "Trigger destroy workflow"
+#            git push origin majd-ci-cd
+
+
+      - name: Sync code to curamet/demo-service
         env:
-            PAT: ${{ env.PAT }}
+          PAT: ${{ env.PAT }}
         run: |
-            git config --global user.email "github-actions@curamet.com"
-            git config --global user.name "GitHub Actions Bot"
-            git clone https://$PAT@github.com/curamet/demo-service.git
-            cd demo-service
-            git checkout majd-ci-cd
-            git commit --allow-empty -m "Trigger destroy workflow"
-            git push origin majd-ci-cd
+          # Clone target repo
+          git clone https://$PAT@github.com/curamet/demo-service.git target-repo
+          cd target-repo
+          git checkout majd-ci-cd
+
+          # Copy all files from current workflow repo into target repo
+          rsync -av --delete ../ . \
+            --exclude ".git" \
+            --exclude ".github" \
+            --exclude "node_modules"
+
+          # Commit changes if there are any
+          git add .
+          if git diff-index --quiet HEAD; then
+            echo "No changes to sync."
+            exit 0
+          fi
+
+          git commit -m "Auto-sync updates from fork"
+          git push origin majd-ci-cd
