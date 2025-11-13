@@ -23,20 +23,17 @@ jobs:
 
       - name: Clone & Sync to curamet/demo-service
         env:
-          PAT: ${{ env.PAT }}
+          PAT: ${{ secrets.PAT }}
         run: |
-          # Clone target repo
           git clone https://$PAT@github.com/curamet/demo-service.git target-repo
           cd target-repo
           git checkout majd-ci-cd
 
-          # Copy files
           rsync -av --delete ../ . \
             --exclude ".git" \
             --exclude ".github" \
             --exclude "node_modules" || true
 
-          # Git identity
           git config --global user.email "github-actions@curamet.com"
           git config --global user.name "GitHub Actions Bot"
 
@@ -48,3 +45,4 @@ jobs:
 
           git commit -m "Auto-sync updates from fork"
           git push https://$PAT@github.com/curamet/demo-service.git HEAD:majd-ci-cd
+
