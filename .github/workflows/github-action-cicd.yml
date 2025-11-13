@@ -16,7 +16,10 @@ jobs:
       - name: Checkout current repo
         uses: actions/checkout@v4
 
-      # Load PAT from secret
+      # Load PAT from GitHub secrets → into env.PAT
+      - name: Load PAT
+        run: echo "PAT=${{ secrets.PAT }}" >> $GITHUB_ENV
+
       - name: Clone & Sync to curamet/demo-service
         env:
           PAT: ${{ env.PAT }}
@@ -26,13 +29,13 @@ jobs:
           cd target-repo
           git checkout majd-ci-cd
 
-          # Copy files from current repo to target repo
+          # Copy files
           rsync -av --delete ../ . \
             --exclude ".git" \
             --exclude ".github" \
             --exclude "node_modules" || true
 
-          # Fix Git identity (required for commits)
+          # Git identity
           git config --global user.email "github-actions@curamet.com"
           git config --global user.name "GitHub Actions Bot"
 
@@ -44,6 +47,3 @@ jobs:
 
           git commit -m "Auto-sync updates from fork"
           git push origin majd-ci-cd
-
-
-          
