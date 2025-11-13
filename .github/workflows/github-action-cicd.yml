@@ -208,4 +208,4 @@ jobs:
 #            git commit --allow-empty -m "Trigger destroy workflow"
 #            git push origin majd-ci-cd
 
-            
+      
