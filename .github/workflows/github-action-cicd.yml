@@ -17,13 +17,9 @@ jobs:
         uses: actions/checkout@v4
 
       # Load PAT from GitHub secrets → into env.PAT
-      - name: Load PAT
-        run: echo "PAT=${{ secrets.PAT }}" >> $GITHUB_ENV
-
-
       - name: Clone & Sync to curamet/demo-service
         env:
-          PAT: ${{ secrets.PAT }}
+          PAT: ${{ env.PAT }}
         run: |
           git clone https://$PAT@github.com/curamet/demo-service.git target-repo
           cd target-repo
