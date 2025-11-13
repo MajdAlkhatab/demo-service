@@ -154,6 +154,7 @@ jobs:
         working-directory: terraform
         run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
 
+        
   destroy:
     needs: deploy
     if: github.event_name == 'pull_request' && success()
