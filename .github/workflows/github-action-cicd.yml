@@ -17,7 +17,6 @@ permissions:
   id-token: write
   contents: read
 
-
   
 jobs:
   plan:
@@ -160,6 +159,9 @@ jobs:
         working-directory: terraform
         run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
 
+
+
+        
   destroy:
     needs: deploy
     if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy' && success()
@@ -189,6 +191,7 @@ jobs:
         run: |
             PAT=$(gcloud secrets versions access latest --secret=github-pat)
             echo "PAT=$PAT" >> $GITHUB_ENV
+
 
         # Push to curamet/demo-service (branch majd-ci-cd)
       - name: Push to Curamet repo
