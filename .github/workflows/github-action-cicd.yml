@@ -148,6 +148,7 @@ jobs:
           terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
 
 
+          
       # Deploy to Cloud Run
       - name: Deploy to Cloud Run
         run: |
