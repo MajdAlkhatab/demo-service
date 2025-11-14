@@ -43,7 +43,7 @@ jobs:
             terraform init -backend-config="environments/dev/backend.conf"
             terraform plan -var-file="environments/dev/terraform.tfvars"
 
-
+            
   deploy-destroy:
     needs: plan
     if: github.event_name == 'pull_request' && github.head_ref == 'test-deploy'
