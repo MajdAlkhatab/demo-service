@@ -28,20 +28,22 @@ jobs:
           project_id: curamet-onboarding
 
       - name: Cleanup old resources
-        run: |
-          gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
-          gcloud artifacts repositories delete vv-curamet-repo --location=europe-west1 --quiet || true
-          gcloud iam service-accounts delete vv-sa-demo-service-runner@curamet-onboarding.iam.gserviceaccount.com --quiet || true
-          gcloud iam service-accounts delete vv-sa-demo-service-invoker@curamet-onboarding.iam.gserviceaccount.com --quiet || true
-          gcloud secrets delete vv-demo-secret --quiet || true
-          gcloud storage rm --recursive gs://vv-curamet-bucket || true
-          gcloud pubsub topics delete vv-dead-letter-topic --quiet || true
-          gcloud pubsub topics delete vv-demo-topic --quiet || true
-          gcloud pubsub topics delete vv-object-notification-topic --quiet || true
-          gcloud pubsub subscriptions delete vv-dead-lettering-subscription --quiet || true
-          gcloud run services delete vv-demo-service-v2 --region=europe-west1 --quiet || true
-          gcloud pubsub subscriptions delete vv-subscription-trigger-demo-service --quiet || true
-          gcloud pubsub subscriptions delete vv-subscription-object-notification --quiet || true
+        working-directory: terraform
+        run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
+#        run: |
+#          gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
+#          gcloud artifacts repositories delete vv-curamet-repo --location=europe-west1 --quiet || true
+#          gcloud iam service-accounts delete vv-sa-demo-service-runner@curamet-onboarding.iam.gserviceaccount.com --quiet || true
+#          gcloud iam service-accounts delete vv-sa-demo-service-invoker@curamet-onboarding.iam.gserviceaccount.com --quiet || true
+#          gcloud secrets delete vv-demo-secret --quiet || true
+#          gcloud storage rm --recursive gs://vv-curamet-bucket || true
+#          gcloud pubsub topics delete vv-dead-letter-topic --quiet || true
+#          gcloud pubsub topics delete vv-demo-topic --quiet || true
+#          gcloud pubsub topics delete vv-object-notification-topic --quiet || true
+#          gcloud pubsub subscriptions delete vv-dead-lettering-subscription --quiet || true
+#          gcloud run services delete vv-demo-service-v2 --region=europe-west1 --quiet || true
+#          gcloud pubsub subscriptions delete vv-subscription-trigger-demo-service --quiet || true
+#          gcloud pubsub subscriptions delete vv-subscription-object-notification --quiet || true
 
       - name: Recreate Terraform state bucket
         run: |
