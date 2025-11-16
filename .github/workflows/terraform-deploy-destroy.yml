@@ -1,7 +1,8 @@
 name: Terraform Deploy & Destroy
 
 on:
-  pull_request:
+  # pull_request:
+  push:
     branches: ["main"]
 
 permissions:
