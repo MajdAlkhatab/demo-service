@@ -17,7 +17,7 @@ resource "google_project_service" "enabled_apis" {
 #  repository_id = "${var.prefix}-curamet-repo"
 #  description   = "example docker repository"
 #  project        = var.project
-#  location      = "europe"
+#  location      = "europe-west1"
 #  format        = "DOCKER"
 #  depends_on = [google_project_service.enabled_apis]
 #}
