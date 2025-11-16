@@ -1,7 +1,8 @@
 name: Terraform Deploy & Destroy
 
 on:
-  pull_request:
+#  pull_request:
+    push:
     branches: ["main"]
 
 permissions:
@@ -34,7 +35,9 @@ jobs:
 
       - name: Cleanup old resources
         working-directory: terraform
-        run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
+        run: | 
+           terraform init -backend-config="environments/dev/backend.conf"
+           terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
 #        run: |
 #          gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
 #          gcloud artifacts repositories delete vv-curamet-repo --location=europe-west1 --quiet || true
