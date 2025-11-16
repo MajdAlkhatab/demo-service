@@ -3,7 +3,7 @@ name: Terraform Deploy & Destroy
 on:
 #  pull_request:
     push:
-    branches: ["test-deploy"]
+        branches: "test-deploy"
 
 permissions:
   id-token: write
