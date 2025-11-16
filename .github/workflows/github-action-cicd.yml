@@ -17,6 +17,7 @@ permissions:
 
 
   
+
 jobs:
   plan:
     if: >
@@ -71,7 +72,8 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: curamet-onboarding
-
+          
+# create destroy instead
       - name: Cleanup old resources
         run: |
             gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
