@@ -1,0 +1,95 @@
+name: Terraform Deploy & Destroy
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-destroy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
+          service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: curamet-onboarding
+
+      - name: Cleanup old resources
+        run: |
+          gcloud artifacts repositories delete vv-curamet-repo --location=europe --quiet || true
+          gcloud artifacts repositories delete vv-curamet-repo --location=europe-west1 --quiet || true
+          gcloud iam service-accounts delete vv-sa-demo-service-runner@curamet-onboarding.iam.gserviceaccount.com --quiet || true
+          gcloud iam service-accounts delete vv-sa-demo-service-invoker@curamet-onboarding.iam.gserviceaccount.com --quiet || true
+          gcloud secrets delete vv-demo-secret --quiet || true
+          gcloud storage rm --recursive gs://vv-curamet-bucket || true
+          gcloud pubsub topics delete vv-dead-letter-topic --quiet || true
+          gcloud pubsub topics delete vv-demo-topic --quiet || true
+          gcloud pubsub topics delete vv-object-notification-topic --quiet || true
+          gcloud pubsub subscriptions delete vv-dead-lettering-subscription --quiet || true
+          gcloud run services delete vv-demo-service-v2 --region=europe-west1 --quiet || true
+          gcloud pubsub subscriptions delete vv-subscription-trigger-demo-service --quiet || true
+          gcloud pubsub subscriptions delete vv-subscription-object-notification --quiet || true
+
+      - name: Recreate Terraform state bucket
+        run: |
+          BUCKET="curamet-onboarding-v2-core-tf-state"
+          LOCATION="EU"
+          if gsutil ls -b gs://$BUCKET >/dev/null 2>&1; then
+            gsutil -m rm -r gs://$BUCKET || true
+          fi
+          gsutil mb -p curamet-onboarding -l $LOCATION gs://$BUCKET
+
+      - name: Ensure Artifact Registry exists
+        run: |
+          gcloud artifacts repositories describe vv-curamet-repo --location=europe-west1 >/dev/null 2>&1 || \
+          gcloud artifacts repositories create vv-curamet-repo \
+            --repository-format=docker \
+            --location=europe-west1 \
+            --description="Docker repo"
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev -q
+
+      - name: Build & Push Docker image
+        run: |
+          IMAGE="europe-west1-docker.pkg.dev/curamet-onboarding/vv-curamet-repo/vv-demo-service-v2"
+          docker buildx create --use
+          docker buildx build --platform linux/amd64 -t "$IMAGE" --push .
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init & Apply
+        working-directory: terraform
+        run: |
+          terraform init -backend-config="environments/dev/backend.conf"
+          terraform plan -var-file="environments/dev/terraform.tfvars"
+          terraform apply -var-file="environments/dev/terraform.tfvars" -auto-approve
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy demo-service-v2 \
+            --image="$IMAGE" \
+            --region=europe-west1 \
+            --allow-unauthenticated \
+            --service-account=github-action@curamet-onboarding.iam.gserviceaccount.com
+
+      - name: Terraform Destroy
+        working-directory: terraform
+        run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
