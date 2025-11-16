@@ -53,14 +53,14 @@ jobs:
 #          gcloud pubsub subscriptions delete vv-subscription-trigger-demo-service --quiet || true
 #          gcloud pubsub subscriptions delete vv-subscription-object-notification --quiet || true
 
-      - name: Recreate Terraform state bucket
-        run: |
-          BUCKET="curamet-onboarding-v2-core-tf-state"
-          LOCATION="EU"
-          if gsutil ls -b gs://$BUCKET >/dev/null 2>&1; then
-            gsutil -m rm -r gs://$BUCKET || true
-          fi
-          gsutil mb -p curamet-onboarding -l $LOCATION gs://$BUCKET
+      #- name: Recreate Terraform state bucket
+      #  run: |
+      #    BUCKET="curamet-onboarding-v2-core-tf-state"
+      #    LOCATION="EU"
+      #    if gsutil ls -b gs://$BUCKET >/dev/null 2>&1; then
+      #      gsutil -m rm -r gs://$BUCKET || true
+      #    fi
+      #    gsutil mb -p curamet-onboarding -l $LOCATION gs://$BUCKET
 
       #- name: Ensure Artifact Registry exists
       #  run: |
