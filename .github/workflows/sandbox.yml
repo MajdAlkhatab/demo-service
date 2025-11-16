@@ -1,0 +1,124 @@
+name: Deploy to Test Environment (zeta-pivot-272421)
+
+on:
+  push:
+    branches: ["three"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- 1. Authentication and Setup ---
+
+      - name: Authenticate to Google Cloud (Test Project)
+        uses: google-github-actions/auth@v2
+        with:
+          # Assuming the WIF Pool is in the new project (zeta-pivot-272421).
+          # If the pool is centralized, use the original project number (696820564091).
+          workload_identity_provider: "projects/536704833487/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
+          service_account: "github-action@zeta-pivot-272421.iam.gserviceaccount.com"
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: zeta-pivot-272421
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      # --- 2. Pre-Deployment Infrastructure Setup ---
+
+      - name: 🪣 Create Terraform State Bucket
+        id: create_bucket
+        run: |
+          BUCKET_NAME="zeta-pivot-272421-tf-state"
+          LOCATION="EU"
+          
+          echo "Checking if bucket $BUCKET_NAME exists..."
+          # Check if bucket exists, if not, create it.
+          if ! gsutil ls -b gs://$BUCKET_NAME >/dev/null 2>&1; then
+            echo "Bucket does not exist. Creating bucket $BUCKET_NAME in $LOCATION..."
+            gsutil mb -p zeta-pivot-272421 -l $LOCATION gs://$BUCKET_NAME
+          else
+            echo "Bucket $BUCKET_NAME already exists. Skipping creation."
+          fi
+          
+          # This line ensures the state file is stored at: 
+          # gs://zeta-pivot-272421-tf-state/test/core/terraform.tfstate
+          echo "STATE_PREFIX=test/core" >> $GITHUB_ENV
+
+
+      - name: 🔑 Ensure Terraform Service Account Permissions
+        run: |
+          SA="github-action@zeta-pivot-272421.iam.gserviceaccount.com"
+          PROJECT_ID="zeta-pivot-272421"
+          
+          # Roles needed for Terraform to manage the infrastructure:
+          ROLES=(
+            "roles/storage.admin"            # Required to manage GCS bucket (for state and application storage)
+            "roles/iam.serviceAccountAdmin"  # Required to create/manage Service Accounts
+            "roles/artifactregistry.admin"   # Required to manage Artifact Registry
+            "roles/run.admin"                # Required to manage Cloud Run
+            "roles/secretmanager.secretAdmin" # Required to manage Secret Manager
+            "roles/pubsub.admin"             # Required to manage Pub/Sub
+            "roles/cloudfunctions.developer" # Common role, often needed for eventing integration
+            "roles/cloudasset.viewer"        # Useful for Terraform to inspect existing resources
+          )
+
+          echo "Granting roles to $SA in project $PROJECT_ID..."
+          for ROLE in "${ROLES[@]}"; do
+            gcloud projects add-iam-policy-binding $PROJECT_ID \
+              --member="serviceAccount:$SA" \
+              --role="$ROLE" \
+              --condition=None
+          done
+          # Grant Storage Object Admin role on the STATE bucket specifically for terraform state locking/reading
+          gsutil iam ch serviceAccount:$SA:objectAdmin gs://zeta-pivot-272421-tf-state
+
+
+      # --- 3. Build, Apply, Deploy ---
+
+      - name: Configure Docker and Build/Push Image
+        run: |
+          gcloud auth configure-docker europe-west1-docker.pkg.dev -q
+          IMAGE="europe-west1-docker.pkg.dev/zeta-pivot-272421/tt-curamet-repo/tt-demo-service-test" # Use the new prefix/service name
+          
+          # Ensure Artifact Registry exists (use the prefix 'tt')
+          gcloud artifacts repositories describe tt-curamet-repo --location=europe-west1 >/dev/null 2>&1 || \
+            gcloud artifacts repositories create tt-curamet-repo \
+              --repository-format=docker \
+              --location=europe-west1 \
+              --description="Docker repo for test environment"
+
+          docker buildx create --use
+          docker buildx build --platform linux/amd64 -t "$IMAGE" --push .
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+
+      - name: Terraform Init & Apply
+        working-directory: terraform
+        run: |
+          # Use the backend.conf and pass the dynamically set prefix
+          terraform init -backend-config="environments/test/backend.conf" -backend-config="prefix=${{ env.STATE_PREFIX }}"
+          terraform plan -var-file="environments/test/terraform.tfvars"
+          terraform apply -var-file="environments/test/terraform.tfvars" -auto-approve
+          
+      # Manual Deploy step remains here if you need to perform additional actions 
+      # or overrides after Terraform apply.
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy tt-demo-service-test \
+            --image="$IMAGE" \
+            --region=europe-west1 \
+            --allow-unauthenticated \
+            --service-account=github-action@zeta-pivot-272421.iam.gserviceaccount.com
