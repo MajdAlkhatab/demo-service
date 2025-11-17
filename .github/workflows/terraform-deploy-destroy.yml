@@ -2,9 +2,8 @@ name: Terraform Deploy & Destroy
 
 on:
   push:
-    branches: ["tree"]
+    branches: ["three"]
 
-    
 permissions:
   id-token: write
   contents: read
