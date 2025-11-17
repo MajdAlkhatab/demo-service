@@ -4,6 +4,7 @@ on:
   push:
     branches: ["tree"]
 
+    
 permissions:
   id-token: write
   contents: read
