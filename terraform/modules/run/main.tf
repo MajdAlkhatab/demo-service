@@ -17,7 +17,7 @@ resource "google_cloud_run_v2_service" "run_service" {
   location = var.region
   template {
       containers {
-        image = local.image_url
+        image = var.docker_image_url != "" ? var.docker_image_url : local.image_url
         env {
           name = "BUCKET_NAME"
           value = var.bucket_name

@@ -13,14 +13,14 @@ resource "google_project_service" "enabled_apis" {
 }
 
 
-#resource "google_artifact_registry_repository" "curamet-repo" {
-#  repository_id = "${var.prefix}-curamet-repo"
-#  description   = "example docker repository"
-#  project        = var.project
-#  location      = "europe"
-#  format        = "DOCKER"
-#  depends_on = [google_project_service.enabled_apis]
-#}
+resource "google_artifact_registry_repository" "curamet-repo" {
+  repository_id = "${var.prefix}-curamet-repo"
+  description   = "example docker repository"
+  project       = var.project
+  location      = var.region
+  format        = "DOCKER"
+  depends_on    = [google_project_service.enabled_apis]
+}
 
 locals {
   // Go to: https://console.cloud.google.com/apis/library to see apis list
