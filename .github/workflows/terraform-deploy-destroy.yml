@@ -2,7 +2,7 @@ name: Terraform Deploy & Destroy
 
 on:
   push:
-    branches: ["three"]
+    branches: ["test-deploy"]
 
 permissions:
   id-token: write
@@ -12,7 +12,6 @@ jobs:
   deploy-destroy:
     runs-on: ubuntu-latest
     env:
-      # Define variables here to avoid conflicts
       TF_VAR_prefix: "vv"
       TF_VAR_project: "curamet-onboarding"
       REGION: "europe-west1"
@@ -27,16 +26,31 @@ jobs:
           workload_identity_provider: "projects/696820564091/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
           service_account: "github-action@curamet-onboarding.iam.gserviceaccount.com"
 
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: curamet-onboarding
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
+      #  deletes the repo if it exists, preventing the 409 error
+      - name: Cleanup Conflicting Resources
+        run: |
+          REPO_NAME="${{ env.TF_VAR_prefix }}-curamet-repo"
+          echo "Checking for existing repository: $REPO_NAME..."
+          
+          gcloud artifacts repositories delete $REPO_NAME \
+            --location=${{ env.REGION }} \
+            --quiet || true
+
       - name: Terraform Init
         working-directory: terraform
         run: terraform init -backend-config="environments/dev/backend.conf"
 
-      # STEP 1: Create ONLY the Artifact Registry via Terraform
+      # STEP 1: Create the Registry via Terraform
       - name: Terraform Apply (Infrastructure Layer)
         working-directory: terraform
         run: |
@@ -47,21 +61,20 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev -q
 
-      # STEP 2: Build & Push (Now safe because Registry exists)
+      # STEP 2: Build & Push
       - name: Build & Push Docker image
         run: |
-          # Construct Image Name matching Terraform variables
           REPO_NAME="${{ env.TF_VAR_prefix }}-curamet-repo"
           SERVICE_NAME="${{ env.TF_VAR_prefix }}-demo-service-v2"
+          # Ensure the image URL matches exactly what Terraform expects
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.TF_VAR_project }}/$REPO_NAME/$SERVICE_NAME:${{ github.sha }}"
           
           docker buildx create --use
           docker buildx build --platform linux/amd64 -t "$IMAGE" --push .
           
-          # Export IMAGE to the next step
           echo "IMAGE_URL=$IMAGE" >> $GITHUB_ENV
 
-      # STEP 3: Deploy Cloud Run using the Image we just pushed
+      # STEP 3: Deploy Service
       - name: Terraform Apply (Service Deployment)
         working-directory: terraform
         run: |
@@ -69,8 +82,7 @@ jobs:
             -var="docker_image_url=${{ env.IMAGE_URL }}" \
             -auto-approve
 
-      # CLEANUP (Optional - keeping your logic)
       - name: Terraform Destroy
-        if: always() # Ensures destroy runs even if apply fails
+        if: always()
         working-directory: terraform
         run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
