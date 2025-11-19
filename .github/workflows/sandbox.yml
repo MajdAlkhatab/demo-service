@@ -1,4 +1,4 @@
-name: Terraform Deploy & Destroy (Sandbox)
+name: Sandbox Auth Test
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  deploy-destroy:
+  test-auth:
     runs-on: ubuntu-latest
     env:
       TF_VAR_prefix: "sb"
@@ -23,9 +23,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          # Sandbox Project Number
-          workload_identity_provider: "projects/536704833487/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
-          # Sandbox Service Account
+            
+          workload_identity_provider: "projects/536704833487/locations/global/workloadIdentityPools/github-pool-sandbox/providers/github-provider-sandbox"
           service_account: "github-action@zeta-pivot-272421.iam.gserviceaccount.com"
 
       - name: Setup gcloud
