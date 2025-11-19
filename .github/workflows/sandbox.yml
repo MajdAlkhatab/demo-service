@@ -2,7 +2,7 @@ name: Sandbox deploy-destroy
 
 on:
   push:
-    branches: "test-deploy"
+    branches: "main"
 
 permissions:
   id-token: write
@@ -37,7 +37,7 @@ jobs:
         with:
           terraform_version: 1.7.5
 
-      # Deletes the repo if it exists (using the 'sb' prefix)
+      # deletes the repo if it exists, preventing the 409 error
       - name: Cleanup Conflicting Resources
         run: |
           REPO_NAME="${{ env.TF_VAR_prefix }}-curamet-repo"
@@ -85,7 +85,6 @@ jobs:
           -var="docker_image_url=${{ env.IMAGE_URL }}" \
           -auto-approve
 
-      # Destroy
       - name: Terraform Destroy
         if: always()
         working-directory: terraform
