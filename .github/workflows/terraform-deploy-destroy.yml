@@ -86,3 +86,4 @@ jobs:
         if: always()
         working-directory: terraform
         run: terraform destroy -var-file="environments/dev/terraform.tfvars" -auto-approve
+        
