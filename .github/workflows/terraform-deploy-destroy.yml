@@ -1,15 +1,15 @@
-name: Terraform Deploy & Destroy
+name: dev Deploy & Destroy
 
 on:
   push:
-    branches: ["three"]
+    branches: "three"
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  deploy-destroy:
+  dev-deploy-destroy:
     runs-on: ubuntu-latest
     env:
       TF_VAR_prefix: "vv"
@@ -50,7 +50,7 @@ jobs:
         working-directory: terraform
         run: terraform init -backend-config="environments/dev/backend.conf"
 
-      # STEP 1: Create the Registry via Terraform
+      # create the Registry via Terraform
       - name: Terraform Apply (Infrastructure Layer)
         working-directory: terraform
         run: |
@@ -61,7 +61,7 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev -q
 
-      # STEP 2: Build & Push
+      # Build & Push
       - name: Build & Push Docker image
         run: |
           REPO_NAME="${{ env.TF_VAR_prefix }}-curamet-repo"
@@ -74,7 +74,7 @@ jobs:
           
           echo "IMAGE_URL=$IMAGE" >> $GITHUB_ENV
 
-      # STEP 3: Deploy Service
+      # Deploy
       - name: Terraform Apply (Service Deployment)
         working-directory: terraform
         run: |
