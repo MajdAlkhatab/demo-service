@@ -1,0 +1,34 @@
+name: Terraform Deploy & Destroy (Sandbox)
+
+on:
+  push:
+    branches: ["test-deploy"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-destroy:
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_prefix: "sb"
+      TF_VAR_project: "zeta-pivot-272421"
+      REGION: "europe-west1"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          # Sandbox Project Number
+          workload_identity_provider: "projects/536704833487/locations/global/workloadIdentityPools/github-pool-v2/providers/github-v2"
+          # Sandbox Service Account
+          service_account: "github-action@zeta-pivot-272421.iam.gserviceaccount.com"
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: zeta-pivot-272421
