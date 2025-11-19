@@ -1,8 +1,0 @@
-prefix               = "tt" 
-project              = "zeta-pivot-272421" 
-project_number       = "536704833487" 
-region               = "europe-west1" 
-location             = "EU"
-envname              = "test"
-run_version          = "0.0.3-test" 
-run_service_name     = "demo-service-test"
